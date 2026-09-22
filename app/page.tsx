@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import Link from "next/link";
-import { books as seedBooks, type Book } from "@/lib/catalog";
+import { books as seedBooks, type Book } from "@/lib/books";
 
 function Icon({ name, size = 18 }: { name: string; size?: number }) {
   const common = { width: size, height: size, fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
