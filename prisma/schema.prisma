@@ -82,7 +82,9 @@ enum SubscriptionStatus {
 
 model User {
   id                 String              @id @default(cuid())
-  email              String              @unique
+  email              String?             @unique
+  mobile             String?             @unique
+  passwordHash       String
   name               String?
   country            String?
   locale             String              @default("en")
@@ -96,6 +98,17 @@ model User {
   walletTransactions WalletTransaction[]
   subscriptions      Subscription[]
   playbackProgress   PlaybackProgress[]
+  sessions           Session[]
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, expiresAt])
 }
 
 model Book {
@@ -137,6 +150,7 @@ model Chapter {
   title            String
   sequence         Int
   sourceTextUrl    String?
+  audioUrl         String?
   durationSeconds  Int?
   status           BookStatus         @default(PUBLISHED)
   createdAt        DateTime           @default(now())
