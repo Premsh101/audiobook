@@ -20,10 +20,30 @@ const books = [
 
 async function main() {
   for (const [slug,title,author,year,genre,durationLabel,description,mark,cover,coverInk,previewUrl,sourceUrl,tags] of books) {
-    await prisma.book.upsert({
+    const book = await prisma.book.upsert({
       where: { slug },
       update: { title, author, year, genre, durationLabel, previewSeconds: 300, description, mark, cover, coverInk, previewUrl, sourceUrl, tags, status: "PUBLISHED", access: "FREE", rightsType: "PUBLIC_DOMAIN", featured: slug === "pride-and-prejudice" || slug === "alice" },
       create: { slug, title, author, year, genre, durationLabel, previewSeconds: 300, description, mark, cover, coverInk, previewUrl, sourceUrl, tags, status: "PUBLISHED", access: "FREE", rightsType: "PUBLIC_DOMAIN", featured: slug === "pride-and-prejudice" || slug === "alice" }
+    });
+
+    await prisma.chapter.upsert({
+      where: { bookId_sequence: { bookId: book.id, sequence: 1 } },
+      update: {
+        title: "Free preview",
+        sourceTextUrl: sourceUrl,
+        audioUrl: previewUrl,
+        durationSeconds: 300,
+        status: "PUBLISHED"
+      },
+      create: {
+        bookId: book.id,
+        title: "Free preview",
+        sequence: 1,
+        sourceTextUrl: sourceUrl,
+        audioUrl: previewUrl,
+        durationSeconds: 300,
+        status: "PUBLISHED"
+      }
     });
   }
 
