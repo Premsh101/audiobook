@@ -5,7 +5,9 @@ import { PrismaPg } from "@prisma/adapter-pg";
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
 
-const books = [
+type SeedBook = [string, string, string, string, string, string, string, string, string, string, string, string, string[]];
+
+const books: SeedBook[] = [
   ["pride-and-prejudice","Pride & Prejudice","Jane Austen","1813","Romance","14h 27m","Wit, first impressions and the slow surprise of falling in love.","P","#7a3f35","#fff8f2","https://archive.org/download/pride_prejudice_1102_librivox/prideandprejudice_01_austen_64kb.mp3","https://librivox.org/969",["classic","love","society"]],
   ["alice","Alice's Adventures in Wonderland","Lewis Carroll","1865","Fantasy","2h 47m","A curious girl falls down a rabbit hole into a world where logic bends.","A","#2f6870","#f7f3e8","https://archive.org/download/alicesadventuresinwonderland_1902_librivox/alicesadventuresinwonderland_01_carroll_64kb.mp3","https://librivox.org/13477",["wonder","children","fantasy"]],
   ["sherlock","The Adventures of Sherlock Holmes","Arthur Conan Doyle","1892","Mystery","10h 18m","Twelve classic cases for the world's most famous consulting detective.","SH","#252521","#efe7da","https://archive.org/download/adventures_holmes/adventureholmes_01_doyle_64kb.mp3","https://librivox.org/the-adventures-of-sherlock-holmes/",["detective","mystery","crime"]],
