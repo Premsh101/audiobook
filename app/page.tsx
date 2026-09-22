@@ -166,6 +166,7 @@ export default function Home() {
   const [selected, setSelected] = useState<Book | null>(null);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
+  const [viewer, setViewer] = useState<{ name?: string | null } | null>(null);
 
   useEffect(() => {
     fetch("/api/books", { cache: "no-store" })
@@ -174,6 +175,10 @@ export default function Home() {
       .catch(() => {
         // Keep the bundled public-domain seed catalog available when the DB is not configured locally.
       });
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => setViewer(data.user ?? null))
+      .catch(() => setViewer(null));
   }, []);
 
   const categories = ["All", "Fiction", "Fantasy", "Mystery", "Romance", "Gothic", "Adventure"];
@@ -191,7 +196,7 @@ export default function Home() {
       <header className="topbar"><div className="nav-wrap">
         <Link href="/" className="brand">hush<span>.</span></Link>
         <nav><a href="#discover">Discover</a><a href="#classics">Library</a><a href="#voice">Favourite Voice</a><a href="#plans">Plans</a></nav>
-        <div className="nav-actions"><button className="search-trigger"><Icon name="search" size={17}/><span>Search</span></button><Link className="nav-ghost" href="/login">Sign in</Link><Link className="nav-cta" href="/voice">Try Favourite Voice <Icon name="arrow" size={14}/></Link></div>
+        <div className="nav-actions"><button className="search-trigger"><Icon name="search" size={17}/><span>Search</span></button><Link className="nav-ghost" href={viewer ? "/account" : "/login"}>{viewer ? "Account" : "Sign in"}</Link><Link className="nav-cta" href="/voice">Try Favourite Voice <Icon name="arrow" size={14}/></Link></div>
       </div></header>
 
       <main>
