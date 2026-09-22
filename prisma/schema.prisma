@@ -1,0 +1,316 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum BookAccess {
+  FREE
+  SUBSCRIPTION
+  PREMIUM
+}
+
+enum RightsType {
+  PUBLIC_DOMAIN
+  LICENSED
+  ORIGINAL
+}
+
+enum BookStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum VoiceStatus {
+  DRAFT
+  PROCESSING
+  READY
+  REVOKED
+  FAILED
+}
+
+enum ConsentStatus {
+  PENDING
+  GRANTED
+  REVOKED
+}
+
+enum GenerationJobType {
+  PREVIEW
+  CHAPTER
+  RETRY
+}
+
+enum GenerationStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum WalletTransactionType {
+  PURCHASE
+  DEBIT
+  REFUND
+  BONUS
+  EXPIRY
+  ADJUSTMENT
+}
+
+enum ProductType {
+  LIBRARY_SUBSCRIPTION
+  VOICE_CREDITS
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+  EXPIRED
+  PENDING
+}
+
+model User {
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  name               String?
+  country            String?
+  locale             String              @default("en")
+  role               UserRole            @default(USER)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  voiceProfiles      VoiceProfile[]
+  voiceConsents      VoiceConsent[]
+  generationJobs     GenerationJob[]
+  wallet             Wallet?
+  walletTransactions WalletTransaction[]
+  subscriptions      Subscription[]
+  playbackProgress   PlaybackProgress[]
+}
+
+model Book {
+  id                   String              @id @default(cuid())
+  slug                 String              @unique
+  title                String
+  author               String
+  year                 String?
+  genre                String
+  durationLabel        String
+  previewSeconds       Int                 @default(300)
+  description          String
+  language             String              @default("en")
+  coverUrl             String?
+  cover                String
+  coverInk             String
+  mark                 String
+  tags                 String[]
+  previewUrl           String?
+  sourceUrl            String?
+  access               BookAccess          @default(FREE)
+  rightsType           RightsType          @default(PUBLIC_DOMAIN)
+  status               BookStatus          @default(DRAFT)
+  featured             Boolean             @default(false)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  chapters             Chapter[]
+  generationJobs       GenerationJob[]
+  generatedAudio       GeneratedAudio[]
+  playbackProgress     PlaybackProgress[]
+  @@index([status, featured])
+  @@index([genre])
+  @@index([language])
+}
+
+model Chapter {
+  id               String             @id @default(cuid())
+  bookId           String
+  title            String
+  sequence         Int
+  sourceTextUrl    String?
+  durationSeconds  Int?
+  status           BookStatus         @default(PUBLISHED)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  book             Book               @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  generationJobs   GenerationJob[]
+  generatedAudio   GeneratedAudio[]
+  playbackProgress PlaybackProgress[]
+  @@unique([bookId, sequence])
+  @@index([bookId])
+}
+
+model VoiceProfile {
+  id              String         @id @default(cuid())
+  userId          String
+  displayName     String
+  relationship     String?
+  language        String         @default("en")
+  provider        String?
+  providerVoiceId String?
+  consentStatus   ConsentStatus  @default(PENDING)
+  status          VoiceStatus    @default(DRAFT)
+  sourceSampleUrl String?
+  version         Int            @default(1)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consents        VoiceConsent[]
+  generationJobs  GenerationJob[]
+  generatedAudio  GeneratedAudio[]
+  @@index([userId, status])
+}
+
+model VoiceConsent {
+  id              String        @id @default(cuid())
+  voiceProfileId  String
+  userId          String
+  method          String
+  statementVersion String
+  grantedAt       DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime      @default(now())
+  voiceProfile    VoiceProfile  @relation(fields: [voiceProfileId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([voiceProfileId])
+  @@index([userId])
+}
+
+model GenerationJob {
+  id                  String             @id @default(cuid())
+  userId              String
+  voiceProfileId      String
+  bookId              String
+  chapterId           String?
+  jobType             GenerationJobType
+  provider            String?
+  model               String?
+  status              GenerationStatus   @default(QUEUED)
+  requestedCharacters Int                @default(0)
+  outputDurationSeconds Int?
+  estimatedCost       Decimal?           @db.Decimal(12, 6)
+  actualCost          Decimal?           @db.Decimal(12, 6)
+  outputUrl           String?
+  error               String?
+  createdAt           DateTime           @default(now())
+  startedAt           DateTime?
+  completedAt         DateTime?
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  voiceProfile        VoiceProfile       @relation(fields: [voiceProfileId], references: [id], onDelete: Cascade)
+  book                Book               @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapter             Chapter?           @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@index([voiceProfileId, bookId, chapterId])
+}
+
+model GeneratedAudio {
+  id              String        @id @default(cuid())
+  voiceProfileId  String
+  bookId          String
+  chapterId       String?
+  settingsHash    String
+  cacheKey        String        @unique
+  provider        String
+  model           String?
+  audioUrl        String
+  durationSeconds Int
+  createdAt       DateTime      @default(now())
+  voiceProfile    VoiceProfile  @relation(fields: [voiceProfileId], references: [id], onDelete: Cascade)
+  book            Book          @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapter         Chapter?      @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  @@unique([voiceProfileId, bookId, chapterId, settingsHash])
+  @@index([bookId, chapterId])
+}
+
+model Wallet {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  balanceSeconds Int     @default(0)
+  currency      String   @default("USD")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WalletTransaction {
+  id          String                @id @default(cuid())
+  userId      String
+  type        WalletTransactionType
+  seconds     Int
+  amount      Decimal?              @db.Decimal(12, 2)
+  currency    String?
+  provider    String?
+  reference   String?
+  metadata    Json?
+  createdAt   DateTime              @default(now())
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt])
+}
+
+model ProductPrice {
+  id                String      @id @default(cuid())
+  productType       ProductType
+  country           String
+  currency          String
+  amount            Decimal     @db.Decimal(12, 2)
+  durationSeconds   Int?
+  externalProductId String @unique
+  active            Boolean     @default(true)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  subscriptions     Subscription[]
+  @@index([productType, country, active])
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String
+  productId            String
+  provider              String
+  providerSubscriptionId String           @unique
+  status               SubscriptionStatus @default(PENDING)
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product              ProductPrice       @relation(fields: [productId], references: [id], onDelete: Restrict)
+  @@index([userId, status])
+}
+
+model PlaybackProgress {
+  id              String    @id @default(cuid())
+  userId          String
+  bookId          String
+  chapterId       String?
+  positionSeconds Int       @default(0)
+  completed       Boolean   @default(false)
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book            Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapter         Chapter?  @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  @@unique([userId, bookId, chapterId])
+  @@index([userId, updatedAt])
+}
+
+model TtsProviderUsage {
+  id              String   @id @default(cuid())
+  provider        String
+  model           String?
+  jobId           String?  @unique
+  characters      Int      @default(0)
+  durationSeconds Int      @default(0)
+  cost            Decimal? @db.Decimal(12, 6)
+  metadata        Json?
+  createdAt       DateTime @default(now())
+}

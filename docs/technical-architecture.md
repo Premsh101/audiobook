@@ -1,89 +1,58 @@
 # Technical Architecture
 
-## Target stack
+## Database decision
 
-Next.js + TypeScript, PostgreSQL/Neon, Cloudflare R2, async job queue, FFmpeg, payment abstraction, and pluggable TTS providers. Keep GPU TTS separate from the web application.
+PostgreSQL runs on the KVM. No managed Neon database is required.
 
-## Flow
+The app connects to PostgreSQL through DATABASE_URL. Prisma ORM 7 uses prisma.config.ts for CLI datasource configuration and @prisma/adapter-pg for runtime connectivity.
 
-Web/Mobile → Next.js/API → PostgreSQL
+## Infrastructure
 
-- Catalog/content metadata in PostgreSQL
-- Source books, covers, voice samples, and generated audio in private R2 objects
-- Generation requests go to a queue
-- TTS worker selects a provider/model
-- FFmpeg post-processes audio
-- Worker writes audio to R2 and usage/cost records to PostgreSQL
-- Player streams authorized audio
+Internet -> Next.js app -> PostgreSQL on KVM
 
-## Core entities
+The app also uses a job queue and a separate TTS worker. Large source files, voice samples, covers and generated audio belong in private object storage such as Cloudflare R2.
 
-User: id, email, locale, country, createdAt
+## KVM PostgreSQL
 
-Book: id, title, author, description, coverUrl, language, rightsType, status
+Use the committed docker-compose.postgres.yml for a dedicated Postgres container with a persistent named volume and healthcheck.
 
-Chapter: id, bookId, title, sequence, sourceTextUrl, durationSeconds, status
+Recommended deployment:
+1. Create a strong database password in the KVM environment.
+2. Start PostgreSQL.
+3. Set DATABASE_URL in the application.
+4. Run prisma migrate deploy.
+5. Run prisma db seed only for an initial/demo catalog.
+6. Back up PostgreSQL separately from the application.
 
-VoiceProfile: id, userId, displayName, relationship, language, provider, providerVoiceId, consentStatus, status, sourceSampleUrl, createdAt
+## Data model
 
-VoiceConsent: id, voiceProfileId, userId, method, statementVersion, grantedAt, revokedAt
+The Prisma schema includes users, books, chapters, voice profiles, consent records, generation jobs, generated audio, wallets, wallet transactions, country-specific prices, subscriptions, playback progress, and TTS usage/cost.
 
-GenerationJob: id, userId, voiceProfileId, bookId, chapterId, jobType, provider, status, requestedCharacters, outputDurationSeconds, estimatedCost, actualCost, outputUrl, error
+## Generation
 
-GeneratedAudio: id, voiceProfileId, bookId, chapterId, settingsHash, provider, audioUrl, durationSeconds, createdAt
+1. Validate user entitlement.
+2. Validate voice consent.
+3. Validate title rights.
+4. Calculate deterministic cache key.
+5. Reuse cached audio when available.
+6. Otherwise queue a generation job.
+7. Select TTS provider using language/quality/health/cost policy.
+8. Generate speech in context-aware chunks.
+9. Post-process with FFmpeg.
+10. Store private output in R2.
+11. Record output and actual TTS cost.
+12. Deduct credits only after successful generation.
 
-Wallet: id, userId, balanceSeconds, currency, updatedAt
+Do not synthesize books by concatenating isolated word recordings.
 
-WalletTransaction: id, userId, type, seconds, amount, currency, provider, reference, createdAt
+## Payments
 
-ProductPrice: id, productType, country, currency, amount, durationSeconds, externalProductId, active
+Keep a payment abstraction. Store country, currency and external product identifiers in the database.
 
-Subscription: id, userId, productId, provider, providerSubscriptionId, status, currentPeriodStart, currentPeriodEnd
+Planned providers:
+- India: Razorpay
+- International: selected payment provider based on supported countries and product type
 
-TtsProviderUsage: id, provider, model, jobId, characters, durationSeconds, cost, metadata, createdAt
+## Security
 
-## Generation rules
-
-1. Validate entitlement and voice consent.
-2. Validate content rights.
-3. Compute a deterministic cache key.
-4. Return existing audio on cache hit.
-5. On miss, enqueue a job.
-6. Select self-hosted standard TTS or paid fallback based on language, quality, health, and cost policy.
-7. Generate in chunks.
-8. Post-process with FFmpeg.
-9. Store private audio in R2.
-10. Persist GeneratedAudio and TtsProviderUsage.
-11. Deduct billable credits only after successful generation.
-
-## Cache key
-
-voiceProfileId + voiceVersion + book/chapter + sourceTextVersion + provider + model + voiceSettings + format.
-
-## TTS adapter
-
-```ts
-export interface TTSProvider {
-  createVoice(input: CreateVoiceInput): Promise<CreateVoiceResult>;
-  generate(input: GenerateSpeechInput): Promise<GenerateSpeechResult>;
-  deleteVoice(voiceId: string): Promise<void>;
-  estimateCost(input: GenerateSpeechInput): Promise<number>;
-}
-```
-
-Implementations should include a self-hosted provider and at least one external provider. Product code must not import provider SDKs directly.
-
-## Cost controls
-
-- Generate generic catalog audio once.
-- Generate personalized previews first.
-- Generate personalized chapters lazily.
-- Cache successful personalized audio.
-- Do not concatenate isolated word recordings as the main synthesis strategy; preserve sentence/phrase context.
-- Keep a pronunciation dictionary for difficult names/words.
-- Rate-limit free preview generation.
-- Never expose TTS secrets to clients.
-
-## Trust and safety
-
-Require explicit consent/authorization for voice cloning. Store the consent record and allow revocation/deletion. Add upload validation, abuse reporting, rate limits, audit events, and private audio URLs.
+Never expose provider secrets to browser clients. Validate audio uploads. Keep voice/audio storage private. Use signed or authorized playback URLs. Keep consent and audit records. Support delete/revoke. Rate-limit free previews.

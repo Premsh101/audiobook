@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import Link from "next/link";
-import { books, type Book } from "@/lib/books";
+import { books as seedBooks, type Book } from "@/lib/catalog";
 
 function Icon({ name, size = 18 }: { name: string; size?: number }) {
   const common = { width: size, height: size, fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
@@ -162,14 +162,24 @@ function AudioPlayer({ book, onClose }: { book: Book; onClose: () => void }) {
 }
 
 export default function Home() {
+  const [catalog, setCatalog] = useState<Book[]>(seedBooks);
   const [selected, setSelected] = useState<Book | null>(null);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
 
+  useEffect(() => {
+    fetch("/api/catalog", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("catalog unavailable"))))
+      .then((data: Book[]) => setCatalog(data))
+      .catch(() => {
+        // Keep the bundled public-domain seed catalog available when the DB is not configured locally.
+      });
+  }, []);
+
   const categories = ["All", "Fiction", "Fantasy", "Mystery", "Romance", "Gothic", "Adventure"];
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return books.filter((book) => {
+    return catalog.filter((book) => {
       const matchesCategory = category === "All" || book.genre === category;
       const haystack = [book.title, book.author, book.genre, ...book.tags].join(" ").toLowerCase();
       return matchesCategory && (!query || haystack.includes(query));
@@ -190,28 +200,28 @@ export default function Home() {
             <span className="eyebrow"><i/> A new way to hear stories</span>
             <h1>The story is the same.<br/><em>The voice can be yours.</em></h1>
             <p>Discover a beautiful audiobook library. Then turn a favourite story into something personal with a voice you know and love.</p>
-            <div className="hero-actions"><a className="button-dark" href="#classics">Explore free books <Icon name="arrow" size={16}/></a><Link className="button-light" href="/voice"><Icon name="mic" size={17}/> Hear a favourite voice</Link></div>
+            <div className="hero-actions"><a className="button-dark" href="#classics">Explore free catalog <Icon name="arrow" size={16}/></a><Link className="button-light" href="/voice"><Icon name="mic" size={17}/> Hear a favourite voice</Link></div>
             <div className="trust-row"><span><b>10</b> free classics</span><span><b>5 min</b> voice preview</span><span><b>Global</b> by design</span></div>
           </div>
           <div className="hero-stage">
             <div className="stage-glow"/>
             <div className="stage-note note-one">LISTEN CLOSER</div>
             <div className="stage-note note-two">FREE CLASSICS · 01</div>
-            <div className="hero-stack back"><Cover book={books[2]} large/></div>
-            <div className="hero-stack front"><Cover book={books[0]} large/></div>
-            <div className="hero-player-chip"><div className="chip-cover"><Cover book={books[1]}/></div><div><span>Now previewing</span><strong>Alice in Wonderland</strong></div><button onClick={() => setSelected(books[1])}><Icon name="play" size={14}/></button></div>
+            <div className="hero-stack back"><Cover book={catalog[2]} large/></div>
+            <div className="hero-stack front"><Cover book={catalog[0]} large/></div>
+            <div className="hero-player-chip"><div className="chip-cover"><Cover book={catalog[1]}/></div><div><span>Now previewing</span><strong>Alice in Wonderland</strong></div><button onClick={() => setSelected(catalog[1])}><Icon name="play" size={14}/></button></div>
           </div>
         </section>
 
         <section className="container intro-strip"><div><span className="section-eyebrow">THE DIFFERENCE</span><strong>One library. One personal layer.</strong></div><p>Familiar audiobook discovery, with a new reason to press play: hearing stories in a voice that already means something.</p></section>
 
         <section className="container library-shell" id="classics">
-          <div className="library-toolbar"><div><span className="section-eyebrow">FREE LIBRARY</span><h2>Start with something everyone knows.</h2></div><div className="search-box"><Icon name="search" size={16}/><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search books or authors…" aria-label="Search books"/></div></div>
+          <div className="library-toolbar"><div><span className="section-eyebrow">FREE LIBRARY</span><h2>Start with something everyone knows.</h2></div><div className="search-box"><Icon name="search" size={16}/><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search catalog or authors…" aria-label="Search catalog"/></div></div>
           <div className="category-row">{categories.map((item) => <button key={item} className={category === item ? "category active" : "category"} onClick={() => setCategory(item)}>{item}</button>)}</div>
           {filtered.length ? <div className="book-grid">{filtered.map((book) => <BookCard key={book.id} book={book} onSelect={setSelected}/>)}</div> : <div className="empty">No classics match that search yet.</div>}
         </section>
 
-        <section className="container"><Shelf title="For slow mornings" eyebrow="EDITOR'S SHELF" items={books.slice(0,5)} onSelect={setSelected}/><Shelf title="When you want a little mystery" eyebrow="AFTER DARK" items={[books[2],books[3],books[4],books[9],books[7]]} onSelect={setSelected}/></section>
+        <section className="container"><Shelf title="For slow mornings" eyebrow="EDITOR'S SHELF" items={catalog.slice(0,5)} onSelect={setSelected}/><Shelf title="When you want a little mystery" eyebrow="AFTER DARK" items={[catalog[2],catalog[3],catalog[4],catalog[9],catalog[7]]} onSelect={setSelected}/></section>
 
         <section className="container voice-cta" id="voice">
           <div className="voice-copy"><span className="section-eyebrow">FAVOURITE VOICE</span><h2>Imagine hearing a familiar voice tell your favourite story.</h2><p>Upload a clean recording from someone you have permission to clone. Listen to a five-minute sample free. Buy minutes only when you want more.</p><div className="voice-buttons"><Link className="button-cream" href="/voice"><Icon name="mic" size={17}/> Create a Favourite Voice</Link><span>5 minutes free · no card required</span></div></div>
@@ -226,7 +236,7 @@ export default function Home() {
         <section className="container source-note"><Icon name="clock" size={15}/><span>Prototype seed catalog uses free LibriVox recordings for public-domain works in the U.S.; distribution rights should be verified territory-by-territory before commercial launch.</span></section>
       </main>
 
-      <footer className="container footer"><div className="footer-main"><Link href="/" className="brand">hush<span>.</span></Link><span>Stories, closer.</span></div><div className="footer-links"><a href="#classics">Library</a><a href="#voice">Favourite Voice</a><a href="#plans">Plans</a><a href={books[0].sourceUrl} target="_blank" rel="noreferrer">Open source</a></div></footer>
+      <footer className="container footer"><div className="footer-main"><Link href="/" className="brand">hush<span>.</span></Link><span>Stories, closer.</span></div><div className="footer-links"><a href="#classics">Library</a><a href="#voice">Favourite Voice</a><a href="#plans">Plans</a><a href={catalog[0].sourceUrl} target="_blank" rel="noreferrer">Open source</a></div></footer>
 
       {selected && <AudioPlayer book={selected} onClose={() => setSelected(null)}/>}
     </div>

@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://hush:ci-password@127.0.0.1:5432/hush
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

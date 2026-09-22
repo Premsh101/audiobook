@@ -2,58 +2,56 @@
 
 ## Positioning
 
-**Hear the stories you love in the voice you love.**
+Hear the stories you love in the voice you love.
 
-The product is intentionally simple: browse audiobooks, listen normally, or personalize a title with a favourite person's consented voice.
+Two products, one simple app.
 
-## Product A — Audiobook Library
+### Library
+Pre-generated audiobooks that many users can listen to without paying a TTS generation cost on every play.
 
-Pre-generated audio is created once and reused across listeners. This is the low-cost acquisition/retention product.
+### Favourite Voice
+Users create a voice profile only with permission from the speaker. They hear a five-minute personalized preview for free, then buy listening-minute credits.
 
-Core flow: sign up → browse/search → title → sample → subscribe → listen → resume.
+## Global-first business model
 
-Initial catalog: public-domain titles, original stories, properly licensed books, and independent-author partnerships.
+The primary market is global. India uses the same product with local prices.
 
-## Product B — Favourite Voice
+Library pricing is configurable per country/currency. Initial experiments can test low-friction monthly/annual access in the US, UK, Canada, Australia, and India.
 
-Core flow: create voice → upload clean sample → capture consent/authorization → quality check → create provider voice → choose eligible title → generate 5-minute preview → buy minute credits → generate requested chapter/content → cache → listen repeatedly.
+Favourite Voice uses prepaid minute credits. Never expose unlimited personalized generation.
 
-Never offer unlimited personalized generation.
+## Economics
 
-## Global pricing experiments
+Library:
+- Generate once.
+- Cache permanently.
+- Reuse across many listeners.
+- Playback should have only delivery/storage costs.
 
-Keep pricing data-driven by country/currency and out of UI source code.
+Favourite Voice:
+- Generation is the expensive event.
+- Free preview is capped at five minutes.
+- Chapters are generated lazily.
+- Successful audio is cached.
+- Standard generation should target a commercially usable self-hosted model.
+- Premium/fallback external providers can be used when quality or language support requires them.
 
-Library hypotheses: Free samples; $2.99/month; $5.99/month; $29.99/year; $59.99/year.
+Track generated minutes, TTS cost/minute, revenue/generated minute, free-preview cost, preview-to-paid conversion, average credit purchase, repeat listening, CAC, refunds, and contribution margin.
 
-Favourite Voice credits: $2.99 / $5.99 / $9.99 / $19.99.
+## Content
 
-Five-minute personalized preview is the primary conversion mechanism.
+Use public-domain works, original stories, licensed works, and independent-author partnerships.
 
-India localization experiments: ₹10–₹19/month library; ₹49 / ₹99 / ₹199 / ₹399 personalized credit packs.
+Do not treat public-domain status in one country as global distribution permission.
 
-These are pricing experiments, not assumed willingness-to-pay.
+## Voice trust
 
-## Unit economics
+Require explicit permission/authorization, consent record, deletion/revocation, rate limits, abuse reporting, and an audit trail.
 
-Generic library: generate each title once; playback has very low marginal delivery cost.
+## Product scope
 
-Favourite Voice: generation is the cost event. Control it with a five-minute free preview, prepaid credits, lazy chapter generation, caching, a self-hosted/low-cost standard model where commercially permitted, and a premium external fallback.
+MVP: discover, search, listen, account, subscription, favourite voice, free preview, credits, personalized chapter generation.
 
-Track generation cost/minute, revenue/generated minute, preview-to-paid conversion, average credits purchased, unused balance, completion, repeat listening, refunds, CAC, and contribution margin.
+Later: recommendations, offline listening, family sharing, gifting.
 
-## Global-first strategy
-
-Core product must support USD/GBP/EUR/CAD/AUD/INR, country-specific catalog rights, localized taxes, multiple payment providers, and multiple languages. Validate US, UK, Canada, Australia, and India as distinct pricing/behavior cohorts.
-
-## UX
-
-Lead with the experience rather than technology:
-
-**Listen to a story. Then hear it in a voice you love.**
-
-Avoid leading with TTS/model terminology.
-
-## Scope exclusions
-
-No calling, chat, RAG, agents, avatars, or social feed in MVP.
+Not now: calling, chat, RAG, agents, avatars.
