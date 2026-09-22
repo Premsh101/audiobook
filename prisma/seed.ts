@@ -23,7 +23,7 @@ async function main() {
     await prisma.book.upsert({
       where: { slug },
       update: { title, author, year, genre, durationLabel, previewSeconds: 300, description, mark, cover, coverInk, previewUrl, sourceUrl, tags, status: "PUBLISHED", access: "FREE", rightsType: "PUBLIC_DOMAIN", featured: slug === "pride-and-prejudice" || slug === "alice" },
-      create: { slug, title, author, year, genre, durationLabel, description, mark, cover, coverInk, previewUrl, sourceUrl, tags, status: "PUBLISHED", access: "FREE", rightsType: "PUBLIC_DOMAIN", featured: slug === "pride-and-prejudice" || slug === "alice" }
+      create: { slug, title, author, year, genre, durationLabel, previewSeconds: 300, description, mark, cover, coverInk, previewUrl, sourceUrl, tags, status: "PUBLISHED", access: "FREE", rightsType: "PUBLIC_DOMAIN", featured: slug === "pride-and-prejudice" || slug === "alice" }
     });
   }
 
@@ -71,17 +71,22 @@ async function main() {
     });
   }
 
-  await prisma.productPrice.createMany({
-    data: [
-      { productType: "LIBRARY_SUBSCRIPTION", country: "US", currency: "USD", amount: 2.99, active: true },
-      { productType: "LIBRARY_SUBSCRIPTION", country: "GB", currency: "GBP", amount: 2.99, active: true },
-      { productType: "LIBRARY_SUBSCRIPTION", country: "IN", currency: "INR", amount: 19, active: true },
-      { productType: "VOICE_CREDITS", country: "US", currency: "USD", amount: 2.99, durationSeconds: 1800, active: true },
-      { productType: "VOICE_CREDITS", country: "US", currency: "USD", amount: 9.99, durationSeconds: 10000, active: true },
-      { productType: "VOICE_CREDITS", country: "IN", currency: "INR", amount: 99, durationSeconds: 3600, active: true }
-    ],
-    skipDuplicates: true
-  });
+  const products = [
+    ["library-us-299","LIBRARY_SUBSCRIPTION","US","USD",2.99,null],
+    ["library-gb-299","LIBRARY_SUBSCRIPTION","GB","GBP",2.99,null],
+    ["library-in-19","LIBRARY_SUBSCRIPTION","IN","INR",19,null],
+    ["voice-us-299","VOICE_CREDITS","US","USD",2.99,1800],
+    ["voice-us-999","VOICE_CREDITS","US","USD",9.99,10000],
+    ["voice-in-99","VOICE_CREDITS","IN","INR",99,3600]
+  ] as const;
+
+  for (const [externalProductId, productType, country, currency, amount, durationSeconds] of products) {
+    await prisma.productPrice.upsert({
+      where: { externalProductId },
+      update: { productType, country, currency, amount, durationSeconds, active: true },
+      create: { externalProductId, productType, country, currency, amount, durationSeconds, active: true }
+    });
+  }
 }
 
 main().finally(async () => {
