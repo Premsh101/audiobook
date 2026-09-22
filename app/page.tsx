@@ -36,7 +36,7 @@ function Cover({ book, large = false }: { book: Book; large?: boolean }) {
 function BookCard({ book, onSelect }: { book: Book; onSelect: (book: Book) => void }) {
   return (
     <article className="book-card">
-      <button className="cover-button" onClick={() => onSelect(book)} aria-label={"Open " + book.title}>
+      <button className="cover-button" onClick={() => { window.location.href = "/book/" + book.id; }} aria-label={"Open " + book.title}>
         <Cover book={book} />
         <span className="cover-hover"><span><Icon name="play" size={15}/></span>Preview</span>
       </button>
@@ -168,7 +168,7 @@ export default function Home() {
   const [category, setCategory] = useState("All");
 
   useEffect(() => {
-    fetch("/api/catalog", { cache: "no-store" })
+    fetch("/api/books", { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("catalog unavailable"))))
       .then((data: Book[]) => setCatalog(data))
       .catch(() => {
@@ -191,7 +191,7 @@ export default function Home() {
       <header className="topbar"><div className="nav-wrap">
         <Link href="/" className="brand">hush<span>.</span></Link>
         <nav><a href="#discover">Discover</a><a href="#classics">Library</a><a href="#voice">Favourite Voice</a><a href="#plans">Plans</a></nav>
-        <div className="nav-actions"><button className="search-trigger"><Icon name="search" size={17}/><span>Search</span></button><Link className="nav-ghost" href="/voice">Sign in</Link><Link className="nav-cta" href="/voice">Try Favourite Voice <Icon name="arrow" size={14}/></Link></div>
+        <div className="nav-actions"><button className="search-trigger"><Icon name="search" size={17}/><span>Search</span></button><Link className="nav-ghost" href="/login">Sign in</Link><Link className="nav-cta" href="/voice">Try Favourite Voice <Icon name="arrow" size={14}/></Link></div>
       </div></header>
 
       <main>
