@@ -9,7 +9,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "build": "prisma generate && next build",
-    "start": "next start"
+    "start": "next start",
+    "tts:worker": "tsx scripts/tts-worker.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
