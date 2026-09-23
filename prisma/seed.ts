@@ -20,6 +20,19 @@ const books: SeedBook[] = [
   ["moby-dick","Moby-Dick","Herman Melville","1851","Adventure","24h 38m","One captain, one white whale, and an obsession that swallows everything.","M","#244f66","#eef5f5","https://archive.org/download/moby_dick_librivox/mobydick_000_melville_64kb.mp3","https://librivox.org/moby-dick-by-herman-melville/",["sea","adventure","classic"]]
 ];
 
+const textSources: Record<string, string> = {
+  "pride-and-prejudice": "https://www.gutenberg.org/cache/epub/1342/pg1342.txt",
+  "alice": "https://www.gutenberg.org/cache/epub/11/pg11.txt",
+  "sherlock": "https://www.gutenberg.org/cache/epub/1661/pg1661.txt",
+  "frankenstein": "https://www.gutenberg.org/cache/epub/84/pg84.txt",
+  "dracula": "https://www.gutenberg.org/cache/epub/345/pg345.txt",
+  "jane-eyre": "https://www.gutenberg.org/cache/epub/1260/pg1260.txt",
+  "little-women": "https://www.gutenberg.org/cache/epub/514/pg514.txt",
+  "great-gatsby": "https://www.gutenberg.org/cache/epub/64317/pg64317.txt",
+  "secret-garden": "https://www.gutenberg.org/cache/epub/17396/pg17396.txt",
+  "moby-dick": "https://www.gutenberg.org/cache/epub/2701/pg2701.txt"
+};
+
 async function main() {
   for (const [slug,title,author,year,genre,durationLabel,description,mark,cover,coverInk,previewUrl,sourceUrl,tags] of books) {
     const book = await prisma.book.upsert({
@@ -30,8 +43,8 @@ async function main() {
 
     await prisma.chapter.upsert({
       where: { bookId_sequence: { bookId: book.id, sequence: 1 } },
-      update: { title: "Free preview", sourceTextUrl: sourceUrl, audioUrl: previewUrl, durationSeconds: 300, status: "PUBLISHED" },
-      create: { bookId: book.id, title: "Free preview", sequence: 1, sourceTextUrl: sourceUrl, audioUrl: previewUrl, durationSeconds: 300, status: "PUBLISHED" }
+      update: { title: "Free preview", sourceTextUrl: textSources[slug], audioUrl: previewUrl, durationSeconds: 300, status: "PUBLISHED" },
+      create: { bookId: book.id, title: "Free preview", sequence: 1, sourceTextUrl: textSources[slug], audioUrl: previewUrl, durationSeconds: 300, status: "PUBLISHED" }
     });
   }
 
