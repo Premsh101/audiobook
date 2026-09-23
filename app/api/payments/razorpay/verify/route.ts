@@ -34,11 +34,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Payment verification failed." }, { status: 400 });
     }
 
+    const basic = Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString("base64");
+    const orderResponse = await fetch(`https://api.razorpay.com/v1/orders/${encodeURIComponent(orderId)}`, {
+      headers: { Authorization: `Basic ${basic}` },
+      cache: "no-store"
+    });
+    const razorOrder = await orderResponse.json();
+    if (!orderResponse.ok || razorOrder.status !== "paid") {
+      return NextResponse.json({ error: "Payment is not confirmed yet." }, { status: 400 });
+    }
+
     const product = await db.productPrice.findFirst({
       where: { id: productId, productType: "VOICE_CREDITS", active: true }
     });
     if (!product || !product.durationSeconds || product.durationSeconds <= 0) {
       return NextResponse.json({ error: "Credit package is no longer available." }, { status: 404 });
+    }
+
+    if (
+      String(razorOrder.notes?.userId ?? "") !== user.id ||
+      String(razorOrder.notes?.productId ?? "") !== product.id ||
+      Number(razorOrder.amount ?? -1) !== Math.round(Number(product.amount) * 100) ||
+      String(razorOrder.currency ?? "") !== product.currency
+    ) {
+      return NextResponse.json({ error: "Payment does not match this credit package." }, { status: 400 });
     }
 
     const existing = await db.walletTransaction.findUnique({ where: { reference: orderId } });
