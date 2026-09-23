@@ -1,0 +1,1 @@
+ALTER TABLE "WalletTransaction" ADD CONSTRAINT "WalletTransaction_reference_key" UNIQUE ("reference");
