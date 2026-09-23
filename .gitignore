@@ -8,3 +8,5 @@ app/generated/prisma/
 coverage/
 *.log
 .DS_Store
+
+.data/
